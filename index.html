@@ -689,11 +689,131 @@ function beep(freq, dur, type){
     o.start(); o.stop(audioCtx.currentTime + dur);
   }catch(e){}
 }
+/* ============ BACKGROUND MUSIC (theme.mid) ============ */
+// Original royalty-free loop, shipped as assets/theme.mid. Parsed and
+// played through Web Audio rather than <audio>, since browsers don't
+// synthesize .mid files natively.
+let musicNotes = null, musicLoopLen = 0, musicStarted = false;
+let musicTimers = [], musicLoopTimer = null;
+
+function readVLQ(view, pos){
+  let value = 0, b;
+  do{ b = view.getUint8(pos.i++); value = (value << 7) | (b & 0x7f); } while(b & 0x80);
+  return value;
+}
+
+function parseMidi(buffer){
+  const view = new DataView(buffer);
+  const pos = { i: 0 };
+  function str(len){ let s=''; for(let k=0;k<len;k++) s += String.fromCharCode(view.getUint8(pos.i++)); return s; }
+  function u32(){ const v = view.getUint32(pos.i); pos.i += 4; return v; }
+  function u16(){ const v = view.getUint16(pos.i); pos.i += 2; return v; }
+  function u8(){ return view.getUint8(pos.i++); }
+
+  if(str(4) !== 'MThd') throw new Error('not a MIDI file');
+  const headerLen = u32();
+  u16(); // format
+  const numTracks = u16();
+  const division = u16();
+  pos.i += headerLen - 6;
+
+  const notes = [];
+  let tempoUS = 500000, maxTick = 0;
+
+  for(let t=0; t<numTracks; t++){
+    if(str(4) !== 'MTrk') throw new Error('bad track chunk');
+    const trackEnd = pos.i + u32();
+    let tick = 0, runningStatus = 0;
+    const open = {};
+
+    while(pos.i < trackEnd){
+      tick += readVLQ(view, pos);
+      let status = u8();
+      if(status < 0x80){ pos.i--; status = runningStatus; } else { runningStatus = status; }
+      const type = status & 0xf0, ch = status & 0x0f;
+
+      if(status === 0xFF){
+        const metaType = u8(), len = readVLQ(view, pos);
+        if(metaType === 0x51 && len === 3){ tempoUS = (u8()<<16)|(u8()<<8)|u8(); }
+        else { pos.i += len; }
+      } else if(status === 0xF0 || status === 0xF7){
+        pos.i += readVLQ(view, pos);
+      } else if(type === 0x90 || type === 0x80){
+        const note = u8(), vel = u8(), key = ch+'-'+note;
+        if(type === 0x90 && vel > 0){ open[key] = { tick, vel }; }
+        else if(open[key]){ notes.push({ tick: open[key].tick, channel: ch, note, vel: open[key].vel, endTick: tick }); delete open[key]; }
+      } else if(type === 0xC0 || type === 0xD0){ u8(); }
+      else if(type === 0xA0 || type === 0xB0 || type === 0xE0){ u8(); u8(); }
+      else { break; }
+      if(tick > maxTick) maxTick = tick;
+    }
+    pos.i = trackEnd;
+  }
+
+  const secPerTick = (tempoUS/1e6)/division;
+  return {
+    notes: notes.map(n => ({
+      time: n.tick*secPerTick,
+      dur: Math.max(0.05, (n.endTick-n.tick)*secPerTick),
+      channel: n.channel, note: n.note, vel: n.vel
+    })),
+    durationSec: maxTick*secPerTick
+  };
+}
+
+function playMusicNote(channel, note, vel, dur){
+  if(!soundOn) return;
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const freq = 440 * Math.pow(2, (note-69)/12);
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = channel === 0 ? 'triangle' : 'sine';
+    o.frequency.value = freq;
+    const peak = (channel === 0 ? 0.032 : 0.045) * (vel/100);
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(peak, audioCtx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur + 0.05);
+  }catch(e){}
+}
+
+function clearMusicTimers(){
+  musicTimers.forEach(clearTimeout); musicTimers = [];
+  if(musicLoopTimer) clearTimeout(musicLoopTimer);
+}
+
+function scheduleMusicLoop(){
+  clearMusicTimers();
+  if(!soundOn || !musicNotes || !musicNotes.length) return;
+  musicNotes.forEach(n => {
+    musicTimers.push(setTimeout(()=> playMusicNote(n.channel, n.note, n.vel, n.dur), n.time*1000));
+  });
+  musicLoopTimer = setTimeout(scheduleMusicLoop, musicLoopLen*1000);
+}
+
+async function ensureMusicLoaded(){
+  if(musicStarted) return;
+  musicStarted = true;
+  try{
+    const res = await fetch('assets/theme.mid');
+    const parsed = parseMidi(await res.arrayBuffer());
+    musicNotes = parsed.notes;
+    musicLoopLen = parsed.durationSec;
+  }catch(e){ musicNotes = null; }
+}
+
 document.getElementById('sound-btn').addEventListener('click', function(){
   soundOn = !soundOn;
   this.style.color = soundOn ? 'var(--cyan)' : 'var(--cream-dim)';
   this.style.borderColor = soundOn ? 'var(--cyan)' : 'var(--edge)';
   beep(660, 0.08);
+  if(soundOn){
+    ensureMusicLoaded().then(()=>{ if(soundOn) scheduleMusicLoop(); });
+  } else {
+    clearMusicTimers();
+  }
 });
 
 /* ============ CONTENT ============ */
