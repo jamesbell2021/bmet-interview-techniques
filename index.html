@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anchorlight Games — Design Interview</title>
+<style>
+  :root{
+    --void:#160F2B;
+    --void-2:#211640;
+    --panel:#2C1F55;
+    --panel-2:#382668;
+    --edge:#5A44A0;
+    --cyan:#46E3D0;
+    --magenta:#FF5C93;
+    --gold:#FFC94A;
+    --cream:#F6EFE2;
+    --cream-dim:#BCAFD4;
+    --sans:"Trebuchet MS","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:"Courier New",ui-monospace,monospace;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:var(--sans);
+    color:var(--cream);
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #35236B 0%, rgba(53,35,107,0) 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px),
+      var(--void);
+    display:flex;
+    justify-content:center;
+    padding:22px 12px 56px;
+  }
+
+  .machine{ width:100%; max-width:760px; }
+
+  /* ---------- HUD ---------- */
+  .hud{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 12px;
+    background:var(--void-2);
+    border:2px solid var(--edge);
+    border-bottom:none;
+    border-radius:10px 10px 0 0;
+  }
+  .logo{ display:flex; align-items:center; gap:8px; flex:none; }
+  .logo svg{ width:22px; height:22px; display:block; }
+  .logo span{
+    font-size:0.72rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--cream);
+    font-weight:bold;
+  }
+
+  .xp{ flex:1; display:flex; align-items:center; gap:8px; min-width:0; }
+  .xp-label{
+    font-family:var(--mono);
+    font-size:0.68rem;
+    color:var(--cream-dim);
+    letter-spacing:0.1em;
+    flex:none;
+  }
+  .xp-track{
+    flex:1;
+    display:flex;
+    gap:3px;
+    height:12px;
+    padding:2px;
+    background:#0E0920;
+    border:1px solid var(--edge);
+    border-radius:3px;
+    min-width:60px;
+  }
+  .xp-seg{
+    flex:1;
+    background:#241A47;
+    border-radius:1px;
+    transition:background 0.35s ease;
+  }
+  .xp-seg.strong{ background:var(--cyan); }
+  .xp-seg.adequate{ background:var(--gold); }
+  .xp-seg.weak{ background:var(--magenta); }
+
+  .sound-btn{
+    flex:none;
+    width:30px; height:26px;
+    background:var(--panel);
+    border:1px solid var(--edge);
+    border-radius:4px;
+    color:var(--cream-dim);
+    cursor:pointer;
+    font-size:0.8rem;
+    line-height:1;
+    padding:0;
+  }
+  .sound-btn:hover{ color:var(--cream); border-color:var(--cyan); }
+
+  /* ---------- STAGE ---------- */
+  .stage{
+    background:linear-gradient(180deg, var(--panel) 0%, var(--void-2) 100%);
+    border:2px solid var(--edge);
+    border-radius:0 0 10px 10px;
+    padding:22px 20px 24px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.5);
+  }
+
+  /* ---------- INTRO ---------- */
+  .intro-top{
+    display:flex;
+    gap:18px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .intro h1{
+    font-size:2.05rem;
+    line-height:1.08;
+    margin:0 0 10px;
+    max-width:14ch;
+    color:var(--cream);
+    text-shadow:0 3px 0 rgba(0,0,0,0.35);
+  }
+  .intro h1 em{
+    font-style:normal;
+    color:var(--gold);
+    display:block;
+  }
+  .intro p{
+    font-size:0.95rem;
+    line-height:1.6;
+    color:var(--cream-dim);
+    max-width:54ch;
+    margin:0 0 6px;
+  }
+  .badge-row{ display:flex; gap:8px; flex-wrap:wrap; margin:16px 0 4px; }
+  .pill{
+    font-family:var(--mono);
+    font-size:0.7rem;
+    letter-spacing:0.06em;
+    padding:5px 9px;
+    border-radius:20px;
+    background:var(--panel-2);
+    border:1px solid var(--edge);
+    color:var(--cream-dim);
+  }
+  .name-field{ margin-top:18px; }
+  .name-field label{
+    display:block;
+    font-family:var(--mono);
+    font-size:0.7rem;
+    letter-spacing:0.1em;
+    color:var(--cream-dim);
+    margin-bottom:6px;
+  }
+  .name-field input{
+    width:100%;
+    max-width:320px;
+    font-family:var(--sans);
+    font-size:0.95rem;
+    padding:10px 12px;
+    color:var(--cream);
+    background:#120D26;
+    border:2px solid var(--edge);
+    border-radius:5px;
+  }
+  .name-field input:focus{ outline:none; border-color:var(--cyan); }
+
+  /* ---------- PORTRAIT ---------- */
+  .portrait-wrap{ flex:none; width:132px; }
+  .portrait{
+    width:132px; height:132px;
+    display:block;
+    border-radius:8px;
+    background:#1C1338;
+    border:2px solid var(--edge);
+  }
+  .portrait.reacting{ animation:nudge 0.32s ease; }
+  @keyframes nudge{
+    0%{ transform:translateY(0); }
+    40%{ transform:translateY(-5px); }
+    100%{ transform:translateY(0); }
+  }
+  .name-plate{
+    margin-top:6px;
+    text-align:center;
+    font-family:var(--mono);
+    font-size:0.68rem;
+    color:var(--cream-dim);
+    line-height:1.4;
+  }
+  .name-plate b{ color:var(--cream); display:block; font-size:0.74rem; }
+
+  /* ---------- QUESTION SCENE ---------- */
+  .scene{ display:flex; gap:18px; align-items:flex-start; }
+  .dialogue{ flex:1; min-width:0; }
+
+  .meta-line{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    font-family:var(--mono);
+    font-size:0.68rem;
+    letter-spacing:0.08em;
+    color:var(--cream-dim);
+    text-transform:uppercase;
+    margin-bottom:7px;
+  }
+  .meta-line .skill{ color:var(--cyan); }
+
+  .textbox{
+    position:relative;
+    background:#120D26;
+    border:2px solid var(--edge);
+    border-radius:7px;
+    padding:16px 18px 20px;
+    min-height:96px;
+  }
+  .textbox p{
+    margin:0;
+    font-size:1.06rem;
+    line-height:1.5;
+    color:var(--cream);
+  }
+  .cursor{
+    position:absolute;
+    right:12px; bottom:9px;
+    width:0; height:0;
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+    border-top:8px solid var(--gold);
+    animation:blink 0.9s steps(2,end) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------- CHOICES ---------- */
+  .choices{ display:flex; flex-direction:column; gap:9px; margin-top:16px; }
+  .choice{
+    position:relative;
+    text-align:left;
+    display:flex;
+    gap:11px;
+    align-items:flex-start;
+    background:var(--panel-2);
+    border:2px solid var(--edge);
+    border-left-width:5px;
+    border-radius:6px;
+    padding:12px 14px;
+    font-family:var(--sans);
+    font-size:0.93rem;
+    line-height:1.45;
+    color:var(--cream);
+    cursor:pointer;
+    transition:transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  }
+  .choice .key{
+    flex:none;
+    font-family:var(--mono);
+    font-size:0.78rem;
+    color:var(--gold);
+    padding-top:1px;
+  }
+  .choice:hover:not(:disabled){
+    transform:translateX(4px);
+    border-color:var(--gold);
+    background:#453079;
+  }
+  .choice:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
+  .choice:disabled{ cursor:default; }
+  .choice.picked-strong{ border-color:var(--cyan); background:rgba(70,227,208,0.14); }
+  .choice.picked-adequate{ border-color:var(--gold); background:rgba(255,201,74,0.14); }
+  .choice.picked-weak{ border-color:var(--magenta); background:rgba(255,92,147,0.14); }
+  .choice.dimmed{ opacity:0.35; }
+
+  /* ---------- FEEDBACK ---------- */
+  .note{
+    margin-top:16px;
+    background:#120D26;
+    border:2px solid var(--edge);
+    border-radius:7px;
+    overflow:hidden;
+  }
+  .note-head{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:9px 14px;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:#120D26;
+    font-weight:bold;
+  }
+  .note-head.strong{ background:var(--cyan); }
+  .note-head.adequate{ background:var(--gold); }
+  .note-head.weak{ background:var(--magenta); }
+  .note-head .pts{ margin-left:auto; }
+
+  .note-body{ padding:14px 16px 16px; }
+  .note-body p{
+    margin:0 0 11px;
+    font-size:0.92rem;
+    line-height:1.55;
+    color:var(--cream);
+  }
+  .theory{
+    margin:0;
+    font-size:0.85rem;
+    line-height:1.55;
+    color:var(--cream-dim);
+    border-top:1px solid var(--edge);
+    padding-top:11px;
+  }
+  .theory b{ color:var(--gold); }
+
+  /* ---------- BUTTONS ---------- */
+  .btn{
+    margin-top:18px;
+    background:var(--gold);
+    color:#231533;
+    border:none;
+    border-radius:6px;
+    box-shadow:0 4px 0 #B98A20;
+    font-family:var(--sans);
+    font-weight:bold;
+    font-size:0.95rem;
+    letter-spacing:0.02em;
+    padding:12px 22px;
+    cursor:pointer;
+    transition:transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); box-shadow:0 5px 0 #B98A20; }
+  .btn:active{ transform:translateY(3px); box-shadow:0 1px 0 #B98A20; }
+  .btn.ghost{
+    background:transparent;
+    color:var(--cream);
+    border:2px solid var(--edge);
+    box-shadow:none;
+  }
+  .btn.ghost:hover{ border-color:var(--cyan); transform:none; box-shadow:none; }
+
+  /* ---------- RESULTS ---------- */
+  .rank-row{ display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+  .rank-badge{
+    flex:none;
+    width:104px; height:104px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:3.2rem;
+    font-weight:bold;
+    border-radius:14px;
+    border:3px solid currentColor;
+    background:rgba(255,255,255,0.05);
+    animation:stampIn 0.45s cubic-bezier(.2,1.5,.4,1);
+  }
+  @keyframes stampIn{
+    0%{ transform:scale(2.2) rotate(-14deg); opacity:0; }
+    100%{ transform:scale(1) rotate(-4deg); opacity:1; }
+  }
+  .rank-badge.tier-s{ color:var(--gold); box-shadow:0 0 26px rgba(255,201,74,0.4); }
+  .rank-badge.tier-a{ color:var(--cyan); }
+  .rank-badge.tier-b{ color:#9BC7FF; }
+  .rank-badge.tier-c{ color:var(--magenta); }
+
+  .rank-text{ flex:1; min-width:200px; }
+  .rank-text h2{
+    margin:0 0 6px;
+    font-size:1.6rem;
+    line-height:1.15;
+  }
+  .rank-text .outcome{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--cream-dim);
+    margin:0;
+  }
+  .verdict{
+    font-size:0.96rem;
+    line-height:1.6;
+    color:var(--cream-dim);
+    max-width:58ch;
+    margin:0 0 6px;
+  }
+
+  h3.head{
+    font-size:1.02rem;
+    margin:26px 0 12px;
+    color:var(--cream);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  h3.head::after{
+    content:"";
+    flex:1;
+    height:2px;
+    background:var(--edge);
+    border-radius:2px;
+  }
+
+  .stat{ margin-bottom:11px; }
+  .stat-top{
+    display:flex;
+    justify-content:space-between;
+    font-size:0.85rem;
+    color:var(--cream-dim);
+    margin-bottom:5px;
+  }
+  .stat-top b{ color:var(--cream); font-weight:normal; }
+  .stat-track{
+    height:11px;
+    background:#120D26;
+    border:1px solid var(--edge);
+    border-radius:3px;
+    padding:2px;
+    display:flex;
+    gap:3px;
+  }
+  .pip{ flex:1; border-radius:1px; background:#241A47; }
+  .pip.on-strong{ background:var(--cyan); }
+  .pip.on-adequate{ background:var(--gold); }
+  .pip.on-weak{ background:var(--magenta); }
+
+  .log-item{
+    display:flex;
+    gap:11px;
+    padding:12px 0;
+    border-top:1px solid var(--edge);
+    font-size:0.88rem;
+    line-height:1.55;
+    color:var(--cream-dim);
+  }
+  .log-item:first-child{ border-top:none; }
+  .log-item b{ color:var(--cream); }
+  .chip{
+    flex:none;
+    font-family:var(--mono);
+    font-size:0.62rem;
+    letter-spacing:0.06em;
+    padding:3px 7px;
+    border-radius:3px;
+    height:fit-content;
+    color:#120D26;
+    font-weight:bold;
+    margin-top:2px;
+  }
+  .chip.strong{ background:var(--cyan); }
+  .chip.adequate{ background:var(--gold); }
+  .chip.weak{ background:var(--magenta); }
+
+  .loadout{
+    margin-top:26px;
+    background:#120D26;
+    border:2px dashed var(--edge);
+    border-radius:8px;
+    padding:18px 20px;
+  }
+  .loadout h3{ margin:0 0 11px; font-size:1rem; color:var(--gold); }
+  .loadout ul{ margin:0; padding-left:19px; font-size:0.89rem; line-height:1.7; color:var(--cream-dim); }
+  .loadout li b{ color:var(--cream); }
+
+  .hidden{ display:none; }
+
+  @media (max-width:560px){
+    .scene{ flex-direction:column; align-items:center; }
+    .portrait-wrap{ width:100px; }
+    .portrait{ width:100px; height:100px; }
+    .dialogue{ width:100%; }
+    .intro h1{ font-size:1.7rem; }
+    .rank-badge{ width:84px; height:84px; font-size:2.6rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="machine">
+
+  <div class="hud">
+    <div class="logo">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M20 3 L35 20 L20 37 L5 20 Z" fill="none" stroke="#FFC94A" stroke-width="3"/>
+        <path d="M20 12 L28 20 L20 28 L12 20 Z" fill="#46E3D0"/>
+      </svg>
+      <span>Anchorlight</span>
+    </div>
+    <div class="xp">
+      <span class="xp-label">XP</span>
+      <div class="xp-track" id="xp-track"></div>
+    </div>
+    <button class="sound-btn" id="sound-btn" title="Toggle sound" aria-label="Toggle sound">♪</button>
+  </div>
+
+  <div class="stage">
+
+    <!-- ===== INTRO ===== -->
+    <section id="screen-intro">
+      <div class="intro">
+        <div class="intro-top">
+          <div class="portrait-wrap">
+            <svg class="portrait" id="portrait-intro" viewBox="0 0 200 200" aria-label="Priya Osei, Lead Designer"></svg>
+            <div class="name-plate"><b>Priya Osei</b>Lead Designer</div>
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <h1>Interview<em>Simulator</em></h1>
+            <p>Six questions. Three ways to answer each. Priya has hired eleven junior designers and rejected roughly two hundred — she's listening for something specific, and after every answer she'll tell you exactly what it was.</p>
+          </div>
+        </div>
+
+        <div class="badge-row">
+          <span class="pill">ROLE — Game Designer</span>
+          <span class="pill">6 QUESTIONS</span>
+          <span class="pill">12 XP MAX</span>
+        </div>
+
+        <div class="name-field">
+          <label for="candidate-name">CANDIDATE NAME (OPTIONAL)</label>
+          <input type="text" id="candidate-name" placeholder="Type your name" maxlength="24">
+        </div>
+
+        <button class="btn" id="start-btn">Enter the room</button>
+      </div>
+    </section>
+
+    <!-- ===== QUESTION ===== -->
+    <section id="screen-question" class="hidden">
+      <div class="scene">
+        <div class="portrait-wrap">
+          <svg class="portrait" id="portrait-q" viewBox="0 0 200 200" aria-label="Priya Osei"></svg>
+          <div class="name-plate"><b>Priya Osei</b>Lead Designer</div>
+        </div>
+        <div class="dialogue">
+          <div class="meta-line">
+            <span>Q<span id="q-num">1</span> / <span id="q-total">6</span></span>
+            <span class="skill" id="q-skill"></span>
+          </div>
+          <div class="textbox">
+            <p id="q-prompt"></p>
+            <span class="cursor" id="q-cursor"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="choices" id="q-choices"></div>
+
+      <div class="note hidden" id="q-note">
+        <div class="note-head" id="note-head">
+          <span id="note-title"></span>
+          <span class="pts" id="note-pts"></span>
+        </div>
+        <div class="note-body">
+          <p id="note-text"></p>
+          <p class="theory" id="note-theory"></p>
+        </div>
+      </div>
+
+      <button class="btn hidden" id="next-btn">Next question</button>
+    </section>
+
+    <!-- ===== RESULTS ===== -->
+    <section id="screen-results" class="hidden">
+      <div class="rank-row">
+        <div class="rank-badge" id="rank-badge"></div>
+        <div class="rank-text">
+          <h2 id="rank-title"></h2>
+          <p class="outcome" id="rank-outcome"></p>
+        </div>
+      </div>
+      <p class="verdict" id="verdict"></p>
+
+      <h3 class="head">Skill sheet</h3>
+      <div id="stats"></div>
+
+      <h3 class="head">Interview log</h3>
+      <div id="log"></div>
+
+      <div class="loadout">
+        <h3>Loadout for the real thing</h3>
+        <ul>
+          <li><b>Three STAR stories, written out.</b> Situation, Task, Action, Result — from your own projects, ready before you sit down.</li>
+          <li><b>One decision you reversed.</b> A design you changed after a playtest proves more than a design that worked first time.</li>
+          <li><b>A two-minute critique.</b> One game you love, one system in it, one specific change and its trade-off.</li>
+          <li><b>Two questions for them.</b> About the team's process, not the perks.</li>
+        </ul>
+      </div>
+
+      <button class="btn ghost" id="retry-btn">Run it again</button>
+    </section>
+
+  </div>
+</div>
+
+<script>
+/* ============ CHARACTER ART ============ */
+function portraitSVG(){
+  return `
+  <defs>
+    <clipPath id="frameClip"><rect x="0" y="0" width="200" height="200" rx="6"/></clipPath>
+  </defs>
+  <g clip-path="url(#frameClip)">
+    <rect width="200" height="200" fill="#241A47"/>
+    <circle cx="100" cy="104" r="74" fill="#31245C"/>
+    <!-- shoulders -->
+    <path d="M28 200 q0-52 72-52 t72 52 Z" fill="#3D2A70"/>
+    <path d="M100 148 v52" stroke="#2C1F55" stroke-width="3"/>
+    <!-- neck -->
+    <rect x="88" y="118" width="24" height="30" rx="9" fill="#B87A4E"/>
+    <!-- head -->
+    <ellipse cx="100" cy="88" rx="41" ry="45" fill="#CE8B58"/>
+    <!-- hair -->
+    <path d="M59 88 q-3-48 41-48 t41 48 q-6-22-41-22 T59 88 Z" fill="#241628"/>
+    <path d="M59 88 q-8 12-6 26 q-9-18 -1-33 Z" fill="#241628"/>
+    <path d="M141 88 q8 12 6 26 q9-18 1-33 Z" fill="#241628"/>
+    <!-- headphones -->
+    <path d="M54 92 a46 46 0 0 1 92 0" fill="none" stroke="#46E3D0" stroke-width="7" stroke-linecap="round"/>
+    <rect x="45" y="86" width="17" height="30" rx="8" fill="#46E3D0"/>
+    <rect x="138" y="86" width="17" height="30" rx="8" fill="#46E3D0"/>
+    <!-- eyes -->
+    <circle cx="85" cy="92" r="4.6" fill="#241628" id="eye-l"/>
+    <circle cx="115" cy="92" r="4.6" fill="#241628" id="eye-r"/>
+    <!-- brows -->
+    <path id="brow-l" d="M75 78 H94" stroke="#241628" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path id="brow-r" d="M106 78 H125" stroke="#241628" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <!-- mouth -->
+    <path id="mouth" d="M88 116 H112" stroke="#7A3E32" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <!-- lanyard badge -->
+    <rect x="112" y="168" width="30" height="20" rx="3" fill="#FFC94A"/>
+    <rect x="116" y="173" width="22" height="3" rx="1.5" fill="#241628"/>
+    <rect x="116" y="180" width="14" height="3" rx="1.5" fill="#241628"/>
+  </g>
+  <rect x="1" y="1" width="198" height="198" rx="6" fill="none" stroke="#5A44A0" stroke-width="2"/>
+  `;
+}
+
+const FACES = {
+  neutral:{ mouth:"M88 116 H112", browL:"M75 78 H94", browR:"M106 78 H125" },
+  strong:{ mouth:"M85 112 Q100 130 115 112", browL:"M75 74 Q84 68 94 73", browR:"M106 73 Q116 68 125 74" },
+  adequate:{ mouth:"M86 116 Q100 122 114 116", browL:"M75 77 H94", browR:"M106 77 H125" },
+  weak:{ mouth:"M86 122 Q100 110 114 122", browL:"M75 72 L94 80", browR:"M125 72 L106 80" },
+  thinking:{ mouth:"M90 117 Q100 113 110 118", browL:"M75 76 H94", browR:"M106 71 Q116 68 125 73" }
+};
+
+function setFace(svgEl, state){
+  const f = FACES[state] || FACES.neutral;
+  svgEl.querySelector('#mouth').setAttribute('d', f.mouth);
+  svgEl.querySelector('#brow-l').setAttribute('d', f.browL);
+  svgEl.querySelector('#brow-r').setAttribute('d', f.browR);
+}
+
+const pIntro = document.getElementById('portrait-intro');
+const pQ = document.getElementById('portrait-q');
+pIntro.innerHTML = portraitSVG().replace(/id="/g,'id="i-');
+pQ.innerHTML = portraitSVG();
+// fix intro ids for face setting
+function setIntroFace(state){
+  const f = FACES[state];
+  pIntro.querySelector('#i-mouth').setAttribute('d', f.mouth);
+  pIntro.querySelector('#i-brow-l').setAttribute('d', f.browL);
+  pIntro.querySelector('#i-brow-r').setAttribute('d', f.browR);
+}
+setIntroFace('adequate');
+
+/* ============ SOUND ============ */
+let soundOn = false;
+let audioCtx = null;
+function beep(freq, dur, type){
+  if(!soundOn) return;
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type || 'square';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  }catch(e){}
+}
+document.getElementById('sound-btn').addEventListener('click', function(){
+  soundOn = !soundOn;
+  this.style.color = soundOn ? 'var(--cyan)' : 'var(--cream-dim)';
+  this.style.borderColor = soundOn ? 'var(--cyan)' : 'var(--edge)';
+  beep(660, 0.08);
+});
+
+/* ============ CONTENT ============ */
+const QUESTIONS = [
+  {
+    skill:"Communication & structure",
+    prompt:"Right — let's start easy. Walk me through your background and what brought you to a design role here.",
+    theory:"<b>The pitch has a shape:</b> a specific hook, the evidence behind it, then a direct line to this studio. \"I love games and work hard\" is true of every applicant, so it gives an interviewer nothing to follow up on.",
+    options:[
+      { tier:"weak", pts:0, text:"I've always loved games, so I figured I'd try to get into the industry. I'm a fast learner and a hard worker.",
+        note:"Nothing here is false, and nothing here is usable. Priya can't ask a follow-up question about \"hard worker\" — and follow-ups are how candidates actually get hired." },
+      { tier:"adequate", pts:1, text:"I studied game design at university, built a few small projects, and I'm particularly interested in level design.",
+        note:"Concrete, and it hands her a thread to pull — level design. What's missing is the story: why level design, and what pushed you toward it?" },
+      { tier:"strong", pts:2, text:"I got into design running tabletop campaigns and noticing which encounters made people lean forward. That took me into a puzzle-platformer for my final project, and I want to bring the same attention to what holds players' attention to a studio making narrative games.",
+        note:"A hook, evidence, and a line straight to this studio. It leaves three different doors open for her next question — which is exactly what a good opener does." }
+    ]
+  },
+  {
+    skill:"Design craft",
+    prompt:"Tell me about a system or a level you designed. Pick one decision you made and tell me why you made it.",
+    theory:"<b>Reasoning beats results.</b> Interviewers aren't checking whether players liked it — they're checking whether you can state a hypothesis and connect it to evidence. \"It was fun\" is an outcome. \"I changed X because Y, and here's what happened\" is the actual skill.",
+    options:[
+      { tier:"weak", pts:0, text:"I designed a level and people said it was fun. I put in enemies I thought would be exciting.",
+        note:"\"I thought would be exciting\" is a guess dressed as a decision. There's no reasoning to evaluate and no evidence the result matched the intent." },
+      { tier:"adequate", pts:1, text:"In my platformer, I introduced obstacle types one at a time so players could learn each mechanic before they got combined.",
+        note:"That's a real principle — teach in isolation, then combine. But it's stated as a rule you followed rather than a decision you tested, so it shows reading more than judgement." },
+      { tier:"strong", pts:2, text:"Playtesters kept dying at the same checkpoint, so I moved it fifteen seconds earlier and added a visual cue before the hazard. Retesting with three more players moved the failure point later — which told me the problem had been signposting, not difficulty.",
+        note:"Observation, hypothesis, change, retest. That loop — not the specific fix — is the thing a design interviewer is listening for." }
+    ]
+  },
+  {
+    skill:"Resilience & coachability",
+    prompt:"Now a harder one. Tell me about a time someone gave you blunt feedback on a design of yours. What did you do?",
+    theory:"<b>STAR under pressure:</b> Situation, Task, Action, Result. The failure modes here are denying the feedback ever happened, or complying with it without understanding it. Interviewers want to see you investigate before you change anything.",
+    options:[
+      { tier:"weak", pts:0, text:"I don't really get harsh feedback — I tend to get the design right first time.",
+        note:"This reads as blind spot, not confidence. Everyone gets hard feedback; claiming otherwise is a bigger flag than any mistake you could have described." },
+      { tier:"adequate", pts:1, text:"A playtester said a puzzle was too hard, so I made it easier, and it played better after that.",
+        note:"You listened and it worked — fine. But \"too hard\" can mean unclear, unfair, or genuinely difficult, and each needs a different fix. No investigation happened here." },
+      { tier:"strong", pts:2, text:"A reviewer said a boss fight felt unfair. My instinct was to defend it, so instead I ran a silent playtest. Players weren't reading the boss's tell before it attacked — so I brightened the tell rather than lowering the damage. Challenge intact, real problem fixed.",
+        note:"The honest impulse to be defensive, the choice not to act on it, an investigation, and a fix aimed at the cause rather than the complaint. That's what coachable looks like." }
+    ]
+  },
+  {
+    skill:"Playtesting method",
+    prompt:"How do you actually run playtests? Talk me through what you do.",
+    theory:"<b>Watch, don't tell.</b> A core playtesting rule: don't explain the game first — if you have to explain it, the design hasn't communicated it. Silent observation surfaces real friction. Asking friends what they thought mostly surfaces politeness.",
+    options:[
+      { tier:"weak", pts:0, text:"Mostly I trust my gut — I've played enough games to know what feels right.",
+        note:"Instinct is a fine starting point and a poor finishing point. This question exists specifically to check whether you'll put player evidence above your own taste." },
+      { tier:"adequate", pts:1, text:"I get friends to play it and ask them what they thought afterwards.",
+        note:"A reasonable start, but friends are polite and memory is unreliable. Nothing here mentions watching for friction as it happens, which is where the real data is." },
+      { tier:"strong", pts:2, text:"I say as little as possible up front and just watch — where they hesitate, where they misread something, where they succeed without knowing why. I record what they did and what they said afterwards, because those often disagree, then change one variable and retest.",
+        note:"Silent observation, the gap between behaviour and self-report, one variable at a time. That's close to how playtesting is actually run in a studio." }
+    ]
+  },
+  {
+    skill:"Critique & design literacy",
+    prompt:"Pick a game you admire. Tell me one thing you'd change about one of its systems.",
+    theory:"<b>Specific, diplomatic critique is a hireable skill.</b> Candidates who can't find anything to change usually haven't looked closely — and candidates who just trash it haven't looked usefully. The answer needs a mechanism and a trade-off.",
+    options:[
+      { tier:"weak", pts:0, text:"Honestly, it's near enough perfect — I wouldn't change anything about it.",
+        note:"No system is beyond critique. This suggests you haven't examined it rather than that it's flawless, and it's one of the commonest ways candidates lose a design interview." },
+      { tier:"adequate", pts:1, text:"The crafting gets pretty grindy in the back half — I'd want to fix that somehow.",
+        note:"A real problem, correctly spotted. Missing the second half of the skill: a concrete change, and what it would cost you elsewhere." },
+      { tier:"strong", pts:2, text:"Its crafting front-loads every interesting choice into the first ten hours, then flattens into resource-gathering. I'd add a second tier at the midpoint that recombines materials you already have, so scarcity stays meaningful without bolting on another grind.",
+        note:"Names the mechanism behind the symptom and proposes a fix with an explicit trade-off. That's systems thinking, which is the whole point of the question." }
+    ]
+  },
+  {
+    skill:"Collaboration",
+    prompt:"Last one. You and an engineer disagree — they say your feature is too expensive to build as designed. What happens next?",
+    theory:"<b>Protect the intent, not the implementation.</b> Your job is defending what the feature must do for the player, not the first way you pictured building it. Treating constraints as obstacles to argue past — rather than information to design with — is a common reason junior designers struggle on teams.",
+    options:[
+      { tier:"weak", pts:0, text:"I'd push to keep it as designed. The vision matters, and working out how to build it is engineering's job.",
+        note:"This treats a constraint as an obstacle and signals you'll be hard to work with under production pressure. It's the fastest available way to fail this question." },
+      { tier:"adequate", pts:1, text:"I'd look for a compromise — maybe simplify the feature so it's cheaper to build.",
+        note:"Decent instinct, but passive. Simplifying without knowing what's actually expensive risks cutting the exact part that made the feature work." },
+      { tier:"strong", pts:2, text:"I'd ask what specifically makes it costly, because that usually separates the genuinely expensive part from the assumed one. Then I'd bring two or three routes to the same player experience and prototype the cheapest, so we're testing an idea instead of arguing about one.",
+        note:"Separates goal from implementation, asks before proposing, and moves to a cheap prototype instead of a debate. That's what collaboration means in practice." }
+    ]
+  }
+];
+
+const KEYS = ["A","B","C"];
+
+/* ============ STATE ============ */
+let current = 0, score = 0, answers = [], candidateName = "";
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ============ XP BAR ============ */
+const xpTrack = document.getElementById('xp-track');
+function buildXP(){
+  xpTrack.innerHTML = "";
+  QUESTIONS.forEach(()=>{
+    const s = document.createElement('div');
+    s.className = 'xp-seg';
+    xpTrack.appendChild(s);
+  });
+}
+buildXP();
+
+/* ============ TYPEWRITER ============ */
+let typeTimer = null;
+function typeText(el, text, done){
+  clearInterval(typeTimer);
+  if(reduceMotion){ el.textContent = text; if(done) done(); return; }
+  el.textContent = "";
+  let i = 0;
+  typeTimer = setInterval(()=>{
+    el.textContent = text.slice(0, ++i);
+    if(i % 3 === 0) beep(520 + Math.random()*80, 0.02, 'square');
+    if(i >= text.length){ clearInterval(typeTimer); if(done) done(); }
+  }, 18);
+}
+
+/* ============ FLOW ============ */
+document.getElementById('start-btn').addEventListener('click', ()=>{
+  candidateName = document.getElementById('candidate-name').value.trim();
+  document.getElementById('screen-intro').classList.add('hidden');
+  document.getElementById('screen-question').classList.remove('hidden');
+  beep(520, 0.1); setTimeout(()=>beep(780, 0.12), 90);
+  renderQuestion();
+});
+
+function shuffle(a){
+  a = a.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function renderQuestion(){
+  const q = QUESTIONS[current];
+  document.getElementById('q-num').textContent = current+1;
+  document.getElementById('q-total').textContent = QUESTIONS.length;
+  document.getElementById('q-skill').textContent = q.skill;
+  setFace(pQ, 'thinking');
+
+  const cursor = document.getElementById('q-cursor');
+  cursor.style.visibility = 'hidden';
+  typeText(document.getElementById('q-prompt'), q.prompt, ()=>{ cursor.style.visibility='visible'; });
+
+  const wrap = document.getElementById('q-choices');
+  wrap.innerHTML = "";
+  const order = shuffle(q.options);
+  order.forEach((opt, i)=>{
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.innerHTML = `<span class="key">${KEYS[i]}</span><span>${opt.text}</span>`;
+    b.addEventListener('click', ()=> pick(opt, i, wrap));
+    wrap.appendChild(b);
+  });
+
+  document.getElementById('q-note').classList.add('hidden');
+  document.getElementById('next-btn').classList.add('hidden');
+}
+
+function pick(opt, idx, wrap){
+  const btns = wrap.children;
+  for(let i=0;i<btns.length;i++){
+    btns[i].disabled = true;
+    btns[i].classList.add(i===idx ? 'picked-'+opt.tier : 'dimmed');
+  }
+
+  score += opt.pts;
+  answers.push({ skill:QUESTIONS[current].skill, tier:opt.tier, pts:opt.pts, note:opt.note });
+
+  xpTrack.children[current].classList.add(opt.tier);
+
+  setFace(pQ, opt.tier);
+  pQ.classList.remove('reacting');
+  void pQ.offsetWidth;
+  pQ.classList.add('reacting');
+
+  if(opt.tier==='strong'){ beep(660,0.09); setTimeout(()=>beep(990,0.14),90); }
+  else if(opt.tier==='adequate'){ beep(560,0.12); }
+  else { beep(220,0.18,'sawtooth'); }
+
+  const head = document.getElementById('note-head');
+  head.className = 'note-head ' + opt.tier;
+  document.getElementById('note-title').textContent =
+    opt.tier==='strong' ? "Strong answer" : opt.tier==='adequate' ? "Workable answer" : "Weak answer";
+  document.getElementById('note-pts').textContent = "+" + opt.pts + " XP";
+  document.getElementById('note-text').textContent = opt.note;
+  document.getElementById('note-theory').innerHTML = QUESTIONS[current].theory;
+  document.getElementById('q-note').classList.remove('hidden');
+
+  const nb = document.getElementById('next-btn');
+  nb.textContent = (current === QUESTIONS.length-1) ? "Hear her decision" : "Next question";
+  nb.classList.remove('hidden');
+}
+
+document.getElementById('next-btn').addEventListener('click', ()=>{
+  beep(700,0.07);
+  current++;
+  if(current >= QUESTIONS.length){ showResults(); }
+  else { renderQuestion(); }
+});
+
+/* ============ RESULTS ============ */
+function showResults(){
+  document.getElementById('screen-question').classList.add('hidden');
+  const res = document.getElementById('screen-results');
+  res.classList.remove('hidden');
+
+  const max = QUESTIONS.length * 2;
+  let rank, tierClass, title, outcome, copy;
+  const who = candidateName ? candidateName + ", " : "";
+
+  if(score >= 11){
+    rank="S"; tierClass="tier-s";
+    title="Offer on the table";
+    outcome="Hired — start date to confirm";
+    copy = who + "every answer gave Priya something to follow up on: a specific example, the reasoning behind it, and evidence it worked. That combination is what separates a hire from a strong near-miss at junior level.";
+  } else if(score >= 8){
+    rank="A"; tierClass="tier-a";
+    title="Offer extended";
+    outcome="Hired — junior designer, with a mentor";
+    copy = who + "there's real design instinct here and she's confident enough to hire on it. A couple of answers stayed general where a concrete example would have closed the deal — the skill sheet below shows which.";
+  } else if(score >= 5){
+    rank="B"; tierClass="tier-b";
+    title="Second interview";
+    outcome="No offer yet — you're through to the next round";
+    copy = who + "you didn't lose the room, but you didn't win it either. Several answers described what happened without the reasoning underneath, and that reasoning is the entire thing being assessed. Fixable before round two.";
+  } else {
+    rank="C"; tierClass="tier-c";
+    title="Not this time";
+    outcome="No offer";
+    copy = who + "most answers gave opinions or outcomes rather than evidence and reasoning — and one or two suggested you'd be hard to give feedback to. That's the most fixable problem in interviewing, and it's worth another run at these questions.";
+  }
+
+  const badge = document.getElementById('rank-badge');
+  badge.className = 'rank-badge ' + tierClass;
+  badge.textContent = rank;
+  document.getElementById('rank-title').textContent = title;
+  document.getElementById('rank-outcome').textContent = outcome + " · " + score + "/" + max + " XP";
+  document.getElementById('verdict').textContent = copy;
+
+  if(score >= 8){ beep(523,0.1); setTimeout(()=>beep(659,0.1),110); setTimeout(()=>beep(784,0.2),220); }
+  else { beep(330,0.15); setTimeout(()=>beep(247,0.25,'sawtooth'),140); }
+
+  const stats = document.getElementById('stats');
+  stats.innerHTML = "";
+  answers.forEach(a=>{
+    const d = document.createElement('div');
+    d.className='stat';
+    const pips = [0,1].map(i=>`<span class="pip ${i < a.pts ? 'on-'+a.tier : ''}"></span>`).join('');
+    d.innerHTML = `<div class="stat-top"><b>${a.skill}</b><span>${a.pts}/2</span></div><div class="stat-track">${pips}</div>`;
+    stats.appendChild(d);
+  });
+
+  const log = document.getElementById('log');
+  log.innerHTML = "";
+  answers.forEach((a,i)=>{
+    const d = document.createElement('div');
+    d.className='log-item';
+    const label = a.tier==='strong'?'STRONG':a.tier==='adequate'?'OK':'WEAK';
+    d.innerHTML = `<span class="chip ${a.tier}">${label}</span><span><b>Q${i+1} · ${a.skill}</b><br>${a.note}</span>`;
+    log.appendChild(d);
+  });
+}
+
+document.getElementById('retry-btn').addEventListener('click', ()=>{
+  current=0; score=0; answers=[];
+  buildXP();
+  document.getElementById('screen-results').classList.add('hidden');
+  document.getElementById('screen-intro').classList.remove('hidden');
+  document.getElementById('candidate-name').value = candidateName;
+  setIntroFace('adequate');
+});
+</script>
+</body>
+</html>
